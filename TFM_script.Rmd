@@ -1,0 +1,1355 @@
+---
+title: "Analisis estadistico"
+author: "Iqra Jabeen"
+date: "24/12/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Datos clínicos
+
+```{r}
+library(readxl)
+clin_data <- read_excel("C:/Users/Usuario1/Desktop/UOC/TFM_CRM/table_jaume_corrected.xlsx")
+
+dim(clin_data)
+nlevels(as.factor(clin_data$redcap_data_access_group))
+```
+
+Se dispone información sobre 105 subjects, recogida en 6 diferents hospitals, que son:
+
+```{r, echo=FALSE}
+table(clin_data$redcap_data_access_group)
+```
+
+## Descriptiva general
+
+```{r}
+datos<-subset(clin_data, select=c(subject_id, redcap_data_access_group, control_patient, sex, age_enrollment, T0bslTSI, T0bslTHb, T0slope1, T0slope2, T0minTSI, T0maxTSI, T0AUC,
+                                  fio2_initial, spo2_initial, bmi,resp_rate_initial, temp_initial, paco2_initial, ph_initial, svco2_initial, fio2_initial, spo2_initial ))
+
+dim(datos)
+#head(datos)
+datos<-as.data.frame(datos)
+
+my_data<-datos
+
+datos$sex<-factor(datos$sex, levels=c(1,2),
+                              labels = c("Femenino", "Masculino"))
+
+datos$control_patient<-factor(datos$control_patient, levels=c(1,2),
+                              labels = c("Voluntarios sanos", "Pacientes con COVID-19"))
+
+```
+
+### Table 1
+
+```{r}
+datos1<-datos[!is.na(datos$sex),]
+
+library(table1)
+label(datos1$sex)       <- "Sexo"
+label(datos1$age_enrollment) <- "Edad"
+#label(datos$control_patient)     <- "Ulceration"
+label(datos1$T0bslTSI) <- "StO2"
+label(datos1$T0slope1) <- "DeO2"
+label(datos1$T0slope2) <- "ReO2"
+label(datos1$T0minTSI) <- "StO2 mínimo"
+label(datos1$T0maxTSI) <- "StO2 màximo"
+label(datos1$T0AUC) <- "Hiperemia AUC"
+label(datos1$temp_initial) <- "Temperatura"
+label(datos1$resp_rate_initial) <- "RR"
+label(datos1$paco2_initial) <- "PacO2"
+label(datos1$ph_initial) <- "PH"
+label(datos1$svco2_initial) <- "SvcO2"
+label(datos1$fio2_initial) <- "FiO2"
+label(datos1$spo2_initial) <- "SpO2"
+label(datos1$T0bslTHb) <- "THC"
+
+###   UNIDADES
+units(datos1$age_enrollment) <- "años"
+units(datos1$T0bslTSI) <- "%"
+units(datos1$T0slope1) <- "%/min"
+units(datos1$T0slope2) <- "%/min"
+units(datos1$T0minTSI) <- "%"
+units(datos1$T0maxTSI) <- "%"
+units(datos1$T0AUC) <- "U"
+units(datos1$temp_initial) <- "ºC"
+units(datos1$resp_rate_initial) <- "resp/min"
+units(datos1$paco2_initial) <- "%"
+units(datos1$svco2_initial) <- "%"
+units(datos1$fio2_initial) <- "%"
+units(datos1$spo2_initial) <- "%"
+units(datos1$T0bslTHb) <- "uM/L"
+
+
+table1(~ sex + age_enrollment + bmi +temp_initial + resp_rate_initial + fio2_initial + spo2_initial + T0bslTSI+ T0bslTHb + T0slope1 + T0slope2 + T0minTSI + T0maxTSI + T0AUC| control_patient, data=datos1, 
+       overall = "Overall", transpose=FALSE)
+
+```
+
+### GRAFICAS
+
+* Distribución de las variables en casos y controles
+* Estudio de la normalidad (qqplot, residous...)
+
+**ESTUDIO DE T0bslTSI, T0slope1, T0slope2, T0minTSI, T0min2max, T0AUC en casos y controles - MICROCIRCULARITY STATUS**
+
+```{r, warning=FALSE, message=FALSE}
+
+library(ggplot2)
+
+par(bg="aliceblue")
+par(mfrow=c(2,2))
+boxplot(datos1$fio2_initial ~ datos1$control_patient, col="antiquewhite4",
+        ylab=expression(paste('FiO'[2], "(%)")),
+        xlab="")
+
+boxplot(datos1$spo2_initial ~ datos1$control_patient, col="antiquewhite4",
+        ylab=expression(paste('SpO'[2], "(%)")),
+        xlab="")
+
+boxplot(datos1$temp_initial ~ datos1$control_patient, col="antiquewhite4",
+        ylab=expression(paste('T', "(ºC)")),
+        xlab="")
+
+boxplot(datos1$resp_rate_initial ~ datos1$control_patient, col="antiquewhite4",
+        ylab=expression(paste('RR', " (resp/min)")),
+        xlab="")
+
+##microcirculartory
+### T0slope1 + T0slope2 + T0minTSI + T0maxTSI 
+par(mfrow=c(3,2))
+boxplot(datos1$T0bslTSI ~ datos1$control_patient, col="azure4",
+        ylab=expression(paste('StO'[2],"(%)")),
+        xlab="")
+
+boxplot(datos1$T0slope1 ~ datos1$control_patient, col="azure4",
+        ylab=expression(paste('DeO'[2], " (%/min)")),
+        xlab="")
+
+boxplot(datos1$T0slope2 ~ datos1$control_patient, col="azure4",
+        ylab=expression(paste('ReO'[2], " (%/min)")),
+        xlab="")
+
+boxplot(datos1$T0AUC ~ datos1$control_patient, col="azure4",
+        ylab="Hiperemia AUC (U)",
+        xlab="")
+boxplot(datos1$T0minTSI ~ datos1$control_patient, col="azure4",
+        ylab=expression(paste('StO'[2]," mínimo (%)")),
+        xlab="")
+
+boxplot(datos1$T0maxTSI ~ datos1$control_patient, col="azure4",
+        ylab=expression(paste('StO'[2]," máximo (%)")),
+        xlab="")
+
+```
+
+**t-test**
+
+```{r}
+#normalidad
+
+#st02
+par(mfrow=c(1,2))
+qqnorm(datos[datos$control_patient == "Voluntarios sanos","T0bslTSI"], main = "Voluntarios sanos",
+       ylab=expression(paste('StO'[2], " (%)")),
+       pch=19, col="cyan")
+qqline(datos[datos$control_patient== "Voluntarios sanos", "T0bslTSI"])
+qqnorm(datos[datos$control_patient == "Pacientes con COVID-19","T0bslTSI"], main = "Pacientes con COVID-19",
+       ylab=expression(paste('StO'[2], " (%)")),
+       pch=19, col="cyan")
+qqline(datos[datos$control_patient == "Pacientes con COVID-19","T0bslTSI"])
+
+library(nortest)
+st<-by(data = datos,INDICES = datos$control_patient,FUN = function(x){ lillie.test(x$T0bslTSI)})
+pv1<-st$`Voluntarios sanos`$p.value
+pc1<-st$`Pacientes con COVID-19`$p.value
+
+#DeO2
+par(mfrow=c(1,2))
+qqnorm(datos[datos$control_patient == "Voluntarios sanos","T0slope1"], main = "Voluntarios sanos",
+       ylab=expression(paste('DeO'[2], " (%/min)")),
+       pch=19, col="cyan")
+qqline(datos[datos$control_patient== "Voluntarios sanos", "T0slope1"])
+qqnorm(datos[datos$control_patient == "Pacientes con COVID-19","T0slope1"], main = "Pacientes con COVID-19",
+       ylab=expression(paste('DeO'[2], " (%/min)")),
+       pch=19, col="cyan")
+qqline(datos[datos$control_patient == "Pacientes con COVID-19","T0slope1"])
+
+slp1<-by(data = datos,INDICES = datos$control_patient,FUN = function(x){ lillie.test(x$T0slope1)})
+pv2<-slp1$`Voluntarios sanos`$p.value
+pc2<-slp1$`Pacientes con COVID-19`$p.value
+
+#ReO2
+
+par(mfrow=c(1,2))
+qqnorm(datos[datos$control_patient == "Voluntarios sanos","T0slope2"], main = "Voluntarios sanos",
+       ylab=expression(paste('ReO'[2], " (%/min)")),
+       pch=19, col="cyan")
+qqline(datos[datos$control_patient== "Voluntarios sanos", "T0slope2"])
+qqnorm(datos[datos$control_patient == "Pacientes con COVID-19","T0slope2"], main = "Pacientes con COVID-19",
+       ylab=expression(paste('ReO'[2], " (%/min)")),
+       pch=19, col="cyan")
+qqline(datos[datos$control_patient == "Pacientes con COVID-19","T0slope2"])
+
+slp2<-by(data = datos,INDICES = datos$control_patient,FUN = function(x){ lillie.test(x$T0slope2)})
+pv3<-slp2$`Voluntarios sanos`$p.value
+pc3<-slp2$`Pacientes con COVID-19`$p.value
+
+# AUC
+par(mfrow=c(1,2))
+qqnorm(datos[datos$control_patient == "Voluntarios sanos","T0AUC"], main = "Voluntarios sanos",
+       ylab="Hiperemia AUC (U)",
+       pch=19, col="cyan")
+qqline(datos[datos$control_patient== "Voluntarios sanos", "T0AUC"])
+qqnorm(datos[datos$control_patient == "Pacientes con COVID-19","T0AUC"], main = "Pacientes con COVID-19",
+       ylab="Hiperemia AUC (U)",
+       pch=19, col="cyan")
+qqline(datos[datos$control_patient == "Pacientes con COVID-19","T0AUC"])
+
+auc<-by(data = datos,INDICES = datos$control_patient,FUN = function(x){ lillie.test(x$T0AUC)})
+pv4<-auc$`Voluntarios sanos`$p.value
+pc4<-auc$`Pacientes con COVID-19`$p.value
+
+#st02#minimo y maximo
+
+par(mfrow=c(1,2))
+qqnorm(datos[datos$control_patient == "Voluntarios sanos","T0minTSI"], main = "Voluntarios sanos",
+       ylab=expression(paste('StO'[2], " (%)")),
+       pch=19, col="cyan")
+qqline(datos[datos$control_patient== "Voluntarios sanos", "T0minTSI"])
+qqnorm(datos[datos$control_patient == "Pacientes con COVID-19","T0minTSI"], main = "Pacientes con COVID-19",
+       ylab=expression(paste('StO'[2], " (%)")),
+       pch=19, col="cyan")
+qqline(datos[datos$control_patient == "Pacientes con COVID-19","T0minTSI"])
+
+st_min<-by(data = datos,INDICES = datos$control_patient,FUN = function(x){ lillie.test(x$T0minTSI)})
+pv5<-st_min$`Voluntarios sanos`$p.value
+pc5<-st_min$`Pacientes con COVID-19`$p.value
+
+par(mfrow=c(1,2))
+qqnorm(datos[datos$control_patient == "Voluntarios sanos","T0maxTSI"], main = "Voluntarios sanos",
+       ylab=expression(paste('StO'[2], " (%)")),
+       pch=19, col="cyan")
+qqline(datos[datos$control_patient== "Voluntarios sanos", "T0maxTSI"])
+qqnorm(datos[datos$control_patient == "Pacientes con COVID-19","T0maxTSI"], main = "Pacientes con COVID-19",
+       ylab=expression(paste('StO'[2], " (%)")),
+       pch=19, col="cyan")
+qqline(datos[datos$control_patient == "Pacientes con COVID-19","T0maxTSI"])
+
+library(nortest)
+st_max<-by(data = datos,INDICES = datos$control_patient,FUN = function(x){ lillie.test(x$T0maxTSI)})
+pv6<-st_max$`Voluntarios sanos`$p.value
+pc6<-st_max$`Pacientes con COVID-19`$p.value
+
+pv<-rbind(pv1, pv2, pv3, pv4, pv5, pv6)
+pc<-rbind(pc1, pc2, pc3, pc4, pc5, pc6)
+
+pvalores<-cbind(pv, pc)
+colnames(pvalores)<-c("Voluntarios sanos", "Pacientes con COVID-19")
+rownames(pvalores)<-c("StO2", "DeO2", "ReO2", "AUC", "StO2 mínimo", "StO2 máximo")
+```
+
+
+```{r}
+test1 <- t.test(datos$T0bslTSI ~ datos$control_patient)
+res_test1<-cbind(test1$estimate[[1]], test1$estimate[[2]], test1$p.value)
+
+test2 <- t.test(datos$T0slope1 ~ datos$control_patient)
+res_test2<-cbind(test2$estimate[[1]], test2$estimate[[2]], test2$p.value)
+
+test3 <- t.test(datos$T0slope2 ~ datos$control_patient)
+res_test3<-cbind(test3$estimate[[1]], test3$estimate[[2]], test3$p.value)
+
+test4 <- t.test(datos$T0AUC ~ datos$control_patient)
+res_test4<-cbind(test4$estimate[[1]], test4$estimate[[2]], test4$p.value)
+
+test5 <- t.test(datos$T0minTSI ~ datos$control_patient)
+res_test5<-cbind(test5$estimate[[1]], test5$estimate[[2]], test5$p.value)
+
+test6 <- t.test(datos$T0maxTSI ~ datos$control_patient)
+res_test6<-cbind(test6$estimate[[1]], test6$estimate[[2]], test6$p.value)
+
+ttest_cv<-rbind(res_test1, res_test2, res_test3, res_test4, res_test5, res_test6)
+colnames(ttest_cv)<-c("Media en Voluntarios sanos", "Media en Pacientes con COVID-19", "P-Valor")
+rownames(ttest_cv)<-c("StO2", "DeO2", "ReO2", "AUC", "st02 minimo", "St02 máximo")
+```
+
+
+
+En este caso el p-valor es ligeramente inferior al umbral habitual de 0.05, por lo que en muchos contextos se hablaría de rechazar la hipótesis de igualdad de medias efectivamente aceptando diferencia entre medias.
+
+
+**Estudio de Normalidad de T0bslTSI, T0slope1, T0slope2, T0AUC**
+
+```{r}
+library(ggplot2)
+require(devtools)
+
+par(mfrow=c(2,2))
+
+qqnorm(datos1$T0maxTSI, pch = 19, col = "gray50")
+qqline(datos1$T0maxTSI)
+
+qqnorm(datos1$T0slope1, pch = 19, col = "gray50")
+qqline(datos1$T0slope1)
+
+qqnorm(datos1$T0slope2, pch = 19, col = "gray50")
+qqline(datos1$T0slope2)
+
+qqnorm(datos1$T0AUC, pch = 19, col = "gray66")
+qqline(datos1$T0AUC)
+
+## Test de Kolmogorov-Smirnov y modificación de Lillefors, nortest
+
+library("nortest")
+lillie.test(x = datos1$T0bslTSI)
+```
+
+## Descriptiva de los casos
+
+**MICROCIRCULARITY STATUS EN COVID-19 PATIENTS**
+
+* En función de mecanical ventilation  - **microcirculatory status according to the degree of respiratory support**
+* En función de leve y grave (ARDS) - **microcirculatory status according to severity of ARDS**
+
+
+### mecanical ventilation
+
+```{r}
+#head(clin_data)
+
+datos_pac<-subset(clin_data, select=c(subject_id, measurement_identifier, death, redcap_data_access_group, control_patient, invasive_mechanical_ventil, age_enrollment, sex, hypertension, previous_heart_failure, lung_disease, periph_vascular_disease, covid_treatments___1, covid_treatments___2, covid_treatments___3, covid_treatments___4, covid_treatments___5, covid_treatments___6, covid_treatments___7, covid_treatments___8, hospital, diabetes, previous_lung_disease, smoker, ischemic_heart_disease, renal_insufficiency, myocardial_infarction, bmi, T0bslTSI, sT0bslTSI, T0bslTHb, sT0bslTHb, T0slope1, T0slope1CI, T0slope2, T0slope2CI, T0minTSI, T0maxTSI, T0AUC,T0min2max, T1bslTSI, sT1bslTSI, T1bslTHb, sT1bslTHb, T1slope1, T1slope1CI, T1slope2, T1slope2CI, T1minTSI, T1maxTSI, T1AUC, T1min2max, temp_initial, resp_rate_initial, fio2_initial, spo2_initial, paco2_initial, ph_initial, svco2_initial, atrial_fibrillation))
+
+pac_cov<-datos_pac[datos_pac$control_patient==2,]
+
+pac_cov$sex<-factor(pac_cov$sex, levels=c(1,2),
+                              labels = c("Femenino", "Masculino"))
+
+pac_cov$invasive_mechanical_ventil<-factor(pac_cov$invasive_mechanical_ventil, levels=c(1,2),
+                              labels = c("IMV", "NRS"))
+
+func_fac<-function(x){
+  x<-factor(x, levels=c(1,2),
+         labels = c("Si", "No"))
+}
+
+vars_fac<-subset(pac_cov, select = c(hypertension, previous_heart_failure, lung_disease, diabetes, previous_lung_disease, smoker, renal_insufficiency))
+
+vars_fac2<-lapply(vars_fac, func_fac)
+
+pac_cov$ischemic_heart_disease<-as.factor(pac_cov$ischemic_heart_disease)
+pac_cov$atrial_fibrillation<-as.factor(pac_cov$atrial_fibrillation)
+
+pac_cov2<-subset(pac_cov, select=c(invasive_mechanical_ventil, age_enrollment, sex, ischemic_heart_disease, atrial_fibrillation, bmi, T0bslTSI, T0bslTHb, T0slope1, T0slope2, T0minTSI, T0maxTSI, T0AUC, temp_initial, resp_rate_initial, fio2_initial, spo2_initial,
+                                   paco2_initial, ph_initial, svco2_initial))
+
+datos_pac<-cbind(pac_cov2, vars_fac2)
+
+library(table1)
+label(datos_pac$T0bslTHb) <- "THC"
+label(datos_pac$bmi)       <- "BMI"
+label(datos_pac$sex)       <- "Sexo"
+label(datos_pac$age_enrollment) <- "Edad"
+label(datos_pac$T0bslTSI) <- "StO2"
+label(datos_pac$T0slope1) <- "DeO2"
+label(datos_pac$T0slope2) <- "ReO2"
+label(datos_pac$T0minTSI) <- "StO2 mínimo"
+label(datos_pac$T0maxTSI) <- "StO2 màximo"
+label(datos_pac$T0AUC) <- "Hiperemia AUC"
+label(datos_pac$temp_initial) <- "Temperatura"
+label(datos_pac$resp_rate_initial) <- "RR"
+label(datos_pac$paco2_initial) <- "PacO2"
+label(datos_pac$ph_initial) <- "PH"
+label(datos_pac$svco2_initial) <- "SvcO2"
+label(datos_pac$fio2_initial) <- "FiO2"
+label(datos_pac$spo2_initial) <- "SpO2"
+
+#enfermedades
+label(datos_pac$hypertension) <- "Hipertensión"
+label(datos_pac$previous_heart_failure) <- "Insuficiencia cardíaca previa"
+label(datos_pac$lung_disease) <- "Enfermedad pulmonar"
+label(datos_pac$diabetes) <- "Diabetes"
+label(datos_pac$previous_lung_disease) <- "Enfermedad pulmonar previa"
+label(datos_pac$smoker) <- "Fumador/a"
+label(datos_pac$renal_insufficiency) <- "Insuficiencia renal"
+
+###   UNIDADES
+units(datos_pac$age_enrollment) <- "años"
+units(datos_pac$T0bslTSI) <- "%"
+units(datos_pac$T0slope1) <- "%/min"
+units(datos_pac$T0slope2) <- "%/min"
+units(datos_pac$T0minTSI) <- "%"
+units(datos_pac$T0maxTSI) <- "%"
+units(datos_pac$T0AUC) <- "U"
+units(datos_pac$temp_initial) <- "ºC"
+units(datos_pac$resp_rate_initial) <- "resp/min"
+units(datos_pac$paco2_initial) <- "%"
+units(datos_pac$svco2_initial) <- "%"
+units(datos_pac$fio2_initial) <- "%"
+units(datos_pac$spo2_initial) <- "%"
+units(datos_pac$T0bslTHb) <- "uM/L"
+
+
+table1(~ sex + age_enrollment + bmi + hypertension + previous_heart_failure +
+         lung_disease + diabetes + previous_lung_disease + smoker + renal_insufficiency +
+         T0bslTSI + T0bslTHb + T0slope1 + T0slope2 + T0AUC + temp_initial +
+         resp_rate_initial + fio2_initial + spo2_initial + paco2_initial + svco2_initial
+       + ischemic_heart_disease + atrial_fibrillation | invasive_mechanical_ventil,
+       data=datos_pac, overall = "Overall", transpose=FALSE)
+
+```
+
+```{r}
+par(mfrow=c(3,2))
+boxplot(datos_pac$T0bslTSI~datos_pac$invasive_mechanical_ventil,
+        col = "gray50",
+        ylab=expression(paste('StO'[2], "(%)")),
+        xlab="")
+
+boxplot(datos_pac$T0slope1~datos_pac$invasive_mechanical_ventil,
+        col = "gray50",
+        ylab=expression(paste('DeO'[2], " (%/min)")),
+        xlab="")
+
+boxplot(datos_pac$T0slope2~datos_pac$invasive_mechanical_ventil,
+        col = "gray50",
+        ylab=expression(paste('ReO'[2], " (%/min)")),
+        xlab="")
+
+boxplot(datos_pac$T0AUC~datos_pac$invasive_mechanical_ventil,
+        col = "gray50",
+        ylab=expression(paste('Hiperemia AUC', " (U)")),
+        xlab="")
+boxplot(datos_pac$T0minTSI~datos_pac$invasive_mechanical_ventil,
+        col = "gray50",
+        ylab=expression(paste('StO'[2], " mínimo (%)")),
+        xlab="")
+
+boxplot(datos_pac$T0maxTSI~datos_pac$invasive_mechanical_ventil,
+        col = "gray50",
+        ylab=expression(paste('StO'[2], " máximo (%)")),
+        xlab="")
+```
+
+### ARDS
+
+```{r}
+datos_pac$nards<-datos_pac$spo2_initial/datos_pac$fio2_initial
+
+datos_pac$ARDS<-cut(datos_pac$nards, breaks = c(0, 1.44, 2.35, 5.15), labels = c("Severe", "Moderate", "Mild"))
+
+prop.table(table(datos_pac$ARDS))*100
+
+```
+
+
+#### Graficas
+
+```{r}
+table1(~  sex + age_enrollment + bmi + T0bslTSI + T0bslTHb + T0slope1 +
+         T0slope2 + T0minTSI + T0maxTSI + T0AUC + temp_initial + resp_rate_initial +
+         fio2_initial + spo2_initial + paco2_initial+ ph_initial + svco2_initial +
+         hypertension + previous_heart_failure +lung_disease + diabetes +
+         previous_lung_disease + smoker + renal_insufficiency + ischemic_heart_disease +
+         atrial_fibrillation| ARDS, data=datos_pac, 
+       overall = "Overall", transpose=FALSE)
+
+```
+
+
+```{r}
+par(mfrow=c(3,2))
+boxplot(datos_pac$T0bslTSI~datos_pac$ARDS,
+        col = "gray66",
+        ylab=expression(paste('StO'[2], "(%)")),
+        xlab="")
+
+boxplot(datos_pac$T0slope1~datos_pac$ARDS,
+        col = "gray66",
+        ylab=expression(paste('DeO'[2], " (%/min)")),
+        xlab="")
+
+boxplot(datos_pac$T0slope2~datos_pac$ARDS,
+        col = "gray66",
+        ylab=expression(paste('ReO'[2], " (%/min)")),
+        xlab="")
+
+boxplot(datos_pac$T0AUC~datos_pac$ARDS,
+        col = "gray66",
+        ylab=expression(paste('Hiperemia AUC', " (U)")),
+        xlab="")
+boxplot(datos_pac$T0minTSI~datos_pac$ARDS,
+        col = "gray66",
+        ylab=expression(paste('StO'[2], " mínimo (%)")),
+        xlab="")
+
+boxplot(datos_pac$T0maxTSI~datos_pac$ARDS,
+        col = "gray66",
+        ylab=expression(paste('StO'[2], " máximo (%)")),
+        xlab="")
+```
+
+#### NORMALIDAD
+
+```{r}
+par(mfrow=c(2,2))
+
+qqnorm(datos_pac$T0bslTSI, pch = 19, col = "gray40",
+       ylab=expression(paste('StO'[2], " (%)")),)
+qqline(datos_pac$T0bslTSI)
+
+qqnorm(datos_pac$T0slope1, pch = 19, col = "gray40",
+       ylab=expression(paste('DeO'[2], " (%/min)")),)
+qqline(datos_pac$T0slope1)
+
+qqnorm(datos_pac$T0slope2, pch = 19, col = "gray40",
+       ylab=expression(paste('ReO'[2], " (%/min)")),)
+qqline(datos_pac$T0slope2)
+
+qqnorm(datos_pac$T0AUC, pch = 19, col = "gray40",
+       ylab=expression(paste('StO'[2], " (U)")),)
+qqline(datos_pac$T0AUC)
+```
+
+### PARAMETROS
+
+* StO2 baseline
+* DeO2
+* ReO2
+* AUC
+
+**Correlation matrix**
+
+```{r}
+library(corrplot)
+library(ggplot2)
+library(PerformanceAnalytics)
+nirs<-subset(datos_pac, select = c(ARDS ,T0bslTSI, T0bslTHb, T0slope1, T0slope2, T0minTSI, T0maxTSI, T0AUC))
+
+names(nirs)<-c("ARDS", "StO2", "THC", "DeO2", "ReO2", "Valor mínimo", "Valor màximo", "Hiperemia AUC")
+
+nirs$ARDS<-as.numeric(nirs$ARDS)
+
+
+mcor<-cor(na.omit(nirs))
+correlacion<-round(mcor, 2)
+corrplot(correlacion, method="number", type="upper")
+
+chart.Correlation(nirs, histogram = F, pch = 19)
+```
+
+#### ANOVA para los parametros de microcirculación
+
+**ANOVA unidireccional (ANOVA de un solo factor o ANOVA simple)**
+
+Dado que el número de observaciones por grupo no es constante, se trata de un modelo no equilibrado. Es importante tenerlo en cuenta cuando se comprueben las condiciones de normalidad y homocedasticidad.
+
+```{r}
+#ARDS ,T0bslTSI, T0slope1, T0slope2, T0AUC
+
+a<-ggplot(data = na.omit(datos_pac), aes(x = ARDS, y = T0bslTSI, color = ARDS)) +
+    geom_boxplot() +
+    ylab(expression(paste("StO2"[2], " (%)")))+
+    xlab("")+
+    theme_bw()
+
+b<-ggplot(data = na.omit(datos_pac), aes(x = ARDS, y = T0slope1, color = ARDS)) +
+    geom_boxplot() +
+    ylab(expression(paste("DeO2"[2], " (%/min)")))+
+    xlab("")+
+    theme_bw()
+
+c<-ggplot(data = na.omit(datos_pac), aes(x = ARDS, y = T0slope2, color = ARDS))+
+    geom_boxplot() +
+    ylab(expression(paste("ReO2"[2], " (%/min)")))+
+    xlab("")+
+    theme_bw()
+
+d<-ggplot(data = na.omit(datos_pac), aes(x = ARDS, y = T0AUC, color = ARDS)) +
+    geom_boxplot() +
+    ylab(expression(paste("Hiperemia AUC", " (U)")))+
+    xlab("")+
+    theme_bw()
+
+library(ggpubr)
+
+ggarrange(a, b, c, d, ncol = 2, nrow = 2)
+```
+
+*verificar condiciones para un ANOVA*
+
+```{r}
+#ARDS ,T0bslTSI, T0slope1, T0slope2, T0AUC
+
+# T0bslTSI
+par(mfrow = c(1,3))
+qqnorm(datos_pac[datos_pac$ARDS == "Mild","T0bslTSI"], main = "Mild", pch=19, col="blue")
+qqline(datos_pac[datos_pac$ARDS== "Mild", "T0bslTSI"])
+qqnorm(datos_pac[datos_pac$ARDS == "Moderate","T0bslTSI"], main = "Moderate", pch=19, col="blue")
+qqline(datos_pac[datos_pac$ARDS == "Moderate","T0bslTSI"])
+qqnorm(datos_pac[datos_pac$ARDS == "Severe","T0bslTSI"], main = "Severe", pch=19, col="blue")
+qqline(datos_pac[datos_pac$ARDS== "Severe", "T0bslTSI"])
+
+#T0slope1
+par(mfrow = c(1,3))
+qqnorm(datos_pac[datos_pac$ARDS == "Mild","T0slope1"], main = "Mild", pch=19, col="blue")
+qqline(datos_pac[datos_pac$ARDS== "Mild", "T0slope1"])
+qqnorm(datos_pac[datos_pac$ARDS == "Moderate","T0slope1"], main = "Moderate", pch=19, col="blue")
+qqline(datos_pac[datos_pac$ARDS == "Moderate","T0slope1"])
+qqnorm(datos_pac[datos_pac$ARDS == "Severe","T0slope1"], main = "Severe", pch=19, col="blue")
+qqline(datos_pac[datos_pac$ARDS== "Severe", "T0slope1"])
+
+# T0slope2
+par(mfrow = c(1,3))
+qqnorm(datos_pac[datos_pac$ARDS == "Mild","T0slope2"], main = "Mild", pch=19, col="blue")
+qqline(datos_pac[datos_pac$ARDS== "Mild", "T0slope2"])
+qqnorm(datos_pac[datos_pac$ARDS == "Moderate","T0slope2"], main = "Moderate", pch=19, col="blue")
+qqline(datos_pac[datos_pac$ARDS == "Moderate","T0slope2"])
+qqnorm(datos_pac[datos_pac$ARDS == "Severe","T0slope2"], main = "Severe", pch=19, col="blue")
+qqline(datos_pac[datos_pac$ARDS== "Severe", "T0slope2"])
+
+# T0AUC
+par(mfrow = c(1,3))
+qqnorm(datos_pac[datos_pac$ARDS == "Mild","T0AUC"], main = "Mild", pch=19, col="blue")
+qqline(datos_pac[datos_pac$ARDS== "Mild", "T0AUC"])
+qqnorm(datos_pac[datos_pac$ARDS == "Moderate","T0AUC"], main = "Moderate", pch=19, col="blue")
+qqline(datos_pac[datos_pac$ARDS == "Moderate","T0AUC"])
+qqnorm(datos_pac[datos_pac$ARDS == "Severe","T0AUC"], main = "Severe", pch=19, col="blue")
+qqline(datos_pac[datos_pac$ARDS== "Severe", "T0AUC"])
+
+# T0minTSI
+par(mfrow = c(1,3))
+qqnorm(datos_pac[datos_pac$ARDS == "Mild","T0minTSI"], main = "Mild", pch=19, col="blue")
+qqline(datos_pac[datos_pac$ARDS== "Mild", "T0minTSI"])
+qqnorm(datos_pac[datos_pac$ARDS == "Moderate","T0minTSI"], main = "Moderate", pch=19, col="blue")
+qqline(datos_pac[datos_pac$ARDS == "Moderate","T0minTSI"])
+qqnorm(datos_pac[datos_pac$ARDS == "Severe","T0minTSI"], main = "Severe", pch=19, col="blue")
+qqline(datos_pac[datos_pac$ARDS== "Severe", "T0minTSI"])
+
+# T0maxTSI
+par(mfrow = c(1,3))
+qqnorm(datos_pac[datos_pac$ARDS == "Mild","T0maxTSI"], main = "Mild", pch=19, col="blue")
+qqline(datos_pac[datos_pac$ARDS== "Mild", "T0maxTSI"])
+qqnorm(datos_pac[datos_pac$ARDS == "Moderate","T0maxTSI"], main = "Moderate", pch=19, col="blue")
+qqline(datos_pac[datos_pac$ARDS == "Moderate","T0maxTSI"])
+qqnorm(datos_pac[datos_pac$ARDS == "Severe","T0maxTSI"], main = "Severe", pch=19, col="blue")
+qqline(datos_pac[datos_pac$ARDS== "Severe", "T0maxTSI"])
+
+```
+
+Dado que los grupos tienen menos de 50 eventos se emplea el test de shapiro-wilk. 
+
+```{r}
+require(nortest)
+
+#T0bslTSI
+sto2_test<-by(data = datos_pac,INDICES = datos_pac$ARDS,FUN = function(x){ lillie.test(x$T0bslTSI)})
+
+dtest<-rbind(sto2_test$Mild$statistic, sto2_test$Moderate$statistic, sto2_test$Severe$statistic)
+ptest<-rbind(sto2_test$Mild$p.value, sto2_test$Moderate$p.value, sto2_test$Severe$p.value)
+
+sto2_test<-by(data = datos_pac,INDICES = datos_pac$ARDS,FUN = function(x){ shapiro.test(x = x$T0bslTSI)})
+
+dtest<-rbind(sto2_test$Mild$statistic, sto2_test$Moderate$statistic, sto2_test$Severe$statistic)
+ptest<-rbind(sto2_test$Mild$p.value, sto2_test$Moderate$p.value, sto2_test$Severe$p.value)
+
+test1<-cbind(dtest, ptest)
+#rownames(test1)<-c("Mild", "Moderate", "Severe")
+#colnames(test1)<-c("Estadístic", "P-valor")
+
+#T0slope1
+
+slope1_test<-by(data = datos_pac,INDICES = datos_pac$ARDS,FUN = function(x){ shapiro.test(x = x$T0slope1)})
+
+dtest<-rbind(slope1_test$Mild$statistic, slope1_test$Moderate$statistic, slope1_test$Severe$statistic)
+ptest<-rbind(slope1_test$Mild$p.value, slope1_test$Moderate$p.value, slope1_test$Severe$p.value)
+
+test1<-cbind(dtest, ptest)
+#rownames(test1)<-c("Mild", "Moderate", "Severe")
+#colnames(test1)<-c("Estadístic", "P-valor")
+
+slope1_test<-by(data = datos_pac,INDICES = datos_pac$ARDS,FUN = function(x){ lillie.test(x$T0slope1)})
+
+dtest<-rbind(slope1_test$Mild$statistic, slope1_test$Moderate$statistic, slope1_test$Severe$statistic)
+ptest<-rbind(slope1_test$Mild$p.value, slope1_test$Moderate$p.value, slope1_test$Severe$p.value)
+
+test1<-cbind(dtest, ptest)
+#rownames(test1)<-c("Mild", "Moderate", "Severe")
+#colnames(test1)<-c("Estadístic", "P-valor")
+
+#T0slope2
+
+slope2_test<-by(data = datos_pac,INDICES = datos_pac$ARDS,FUN = function(x){ shapiro.test(x = x$T0slope2)})
+
+dtest<-rbind(slope2_test$Mild$statistic, slope2_test$Moderate$statistic, slope2_test$Severe$statistic)
+ptest<-rbind(slope2_test$Mild$p.value, slope2_test$Moderate$p.value, slope2_test$Severe$p.value)
+
+test1<-cbind(dtest, ptest)
+#rownames(test1)<-c("Mild", "Moderate", "Severe")
+#colnames(test1)<-c("Estadístic", "P-valor")
+
+#T0AUC
+
+auc_test<-by(data = datos_pac,INDICES = datos_pac$ARDS,FUN = function(x){ shapiro.test(x = x$T0AUC)})
+
+dtest<-rbind(auc_test$Mild$statistic, auc_test$Moderate$statistic, auc_test$Severe$statistic)
+ptest<-rbind(auc_test$Mild$p.value, auc_test$Moderate$p.value, auc_test$Severe$p.value)
+
+test1<-cbind(dtest, ptest)
+#rownames(test1)<-c("Mild", "Moderate", "Severe")
+#colnames(test1)<-c("Estadístic", "P-valor")
+
+#T0minTSI
+
+sto2_min<-by(data = datos_pac,INDICES = datos_pac$ARDS,FUN = function(x){ shapiro.test(x = x$T0minTSI)})
+
+dtest<-rbind(sto2_min$Mild$statistic, sto2_min$Moderate$statistic, sto2_min$Severe$statistic)
+ptest<-rbind(sto2_min$Mild$p.value, sto2_min$Moderate$p.value, sto2_min$Severe$p.value)
+
+test1<-cbind(dtest, ptest)
+#rownames(test1)<-c("Mild", "Moderate", "Severe")
+#colnames(test1)<-c("Estadístic", "P-valor")
+
+#T0maxTSI
+st02_max<-by(data = datos_pac,INDICES = datos_pac$ARDS,FUN = function(x){ shapiro.test(x = x$T0maxTSI)})
+
+dtest<-rbind(st02_max$Mild$statistic, st02_max$Moderate$statistic, st02_max$Severe$statistic)
+ptest<-rbind(st02_max$Mild$p.value, st02_max$Moderate$p.value, st02_max$Severe$p.value)
+
+test1<-cbind(dtest, ptest)
+#rownames(test1)<-c("Mild", "Moderate", "Severe")
+#colnames(test1)<-c("Estadístic", "P-valor")
+```
+
+Los test de hipótesis no muestran evidencias de falta de normalidad.
+
+
+Varianza constante entre grupos (homocedasticidad):
+
+* **F-test (razón de varianzas)**: El F-test, también conocido como contraste de la razón de varianzas, contrasta la hipótesis nula de que dos poblaciones normales tienen la misma varianza. Es muy potente, detecta diferencias muy sutiles
+
+* **Test de Bartlett** :Permite contrastar la igualdad de varianza en 2 o más poblaciones sin necesidad de que el tamaño de los grupos sea el mismo.
+
+* **Fligner-Killeen (median) test**
+
+```{r}
+#T0bslTSI
+vartest_param1<-fligner.test(T0bslTSI ~ ARDS, datos_pac)
+
+vartest1<-cbind(vartest_param1$statistic, vartest_param1$p.value)
+colnames(vartest1)<-c("Estadístic", "P-valor")
+
+#T0slope1
+
+vartest_param1<-fligner.test(T0slope1 ~ ARDS, datos_pac)
+
+vartest2<-cbind(vartest_param1$statistic, vartest_param1$p.value)
+colnames(vartest2)<-c("Estadístic", "P-valor")
+
+
+#T0slope2
+
+vartest_param1<-fligner.test(T0slope2 ~ ARDS, datos_pac)
+
+vartest3<-cbind(vartest_param1$statistic, vartest_param1$p.value)
+colnames(vartest3)<-c("Estadístic", "P-valor")
+
+
+#T0AUC
+
+vartest_param1<-fligner.test(T0AUC ~ ARDS, datos_pac)
+
+vartest4<-cbind(vartest_param1$statistic, vartest_param1$p.value)
+colnames(vartest4)<-c("Estadístic", "P-valor")
+
+#T0minTSI
+vartest_param1<-fligner.test(T0minTSI ~ ARDS, datos_pac)
+
+vartest4<-cbind(vartest_param1$statistic, vartest_param1$p.value)
+colnames(vartest4)<-c("Estadístic", "P-valor")
+
+#T0maxTSI
+vartest_param1<-fligner.test(T0maxTSI ~ ARDS, datos_pac)
+
+vartest4<-cbind(vartest_param1$statistic, vartest_param1$p.value)
+colnames(vartest4)<-c("Estadístic", "P-valor")
+
+#vartest<-rbind(vartest1, vartest2, vartest3, vartest4)
+#rownames(vartest)<-c("T0bslTSI", "T0slope1", "T0slope2", "T0AUC", "T0minTSI", "T0maxTSI")
+```
+
+El test no encuentra diferencias significativas entre las varianzas de los dos grupos. No hay evidencias significativas de falta de homocedasticidad en ninguno de los dos test.
+
+El estudio de las condiciones puede realizarse previo cálculo del ANOVA, puesto que si no se cumplen no tiene mucho sentido seguir adelante. Sin embargo la forma más adecuada de comprobar que se satisfacen las condiciones necesarias es estudiando los residuos del modelo una vez generado el ANOVA. R permite graficar los residuos de forma directa con la función plot(objeto anova).
+
+**Análisis de varianza ANOVA**
+
+```{r, message=FALSE, warning=FALSE, results='asis'}
+library(xtable)
+#T0bslTSI
+anova <- aov(datos_pac$T0bslTSI ~ datos_pac$ARDS)
+summary(anova)
+
+#T0slope1
+anova <- aov(datos_pac$T0slope1 ~ datos_pac$ARDS)
+xtable(summary(anova))
+
+#T0slope1
+anova <- aov(datos_pac$T0slope2 ~ datos_pac$ARDS)
+xtable(summary(anova))
+
+#T0AUC
+anova <- aov(datos_pac$T0AUC ~ datos_pac$ARDS)
+xtable(summary(anova))
+
+#T0minTSI
+anova <- aov(datos_pac$T0minTSI ~ datos_pac$ARDS)
+xtable(summary(anova))
+
+#T0maxTSI
+anova <- aov(datos_pac$T0maxTSI ~ datos_pac$ARDS)
+xtable(summary(anova))
+```
+
+Dado que el p-value es inferior a 0.05 no hay evidencias suficientes para considerar que las dos medias no son distintas. La representación gráfica de los residuos no muestra falta de homocedasticidad (gráfico 1) y en el qqplot los residuos se distribuyen muy cercanos a la linea de la normal.
+
+#### ANOVA para Param1
+
+* Suma de los valores en absoluto de los pendientes 
+* Angulo "v"
+
+**Suma de los valores en absoluto de los pendientes**
+
+```{r}
+datos_pac$param1<-abs(datos_pac$T0slope1) + datos_pac$T0slope2
+hist(datos_pac$param1)
+
+datos_pac$param2<-abs(datos_pac$T0slope1) / datos_pac$T0slope2
+
+par(mfrow=c(1,2))
+boxplot(datos_pac$param1~datos_pac$ARDS,
+        col = "gray",
+        ylab=expression("P"[1] == paste( "|", "DeO"[2], "|") + "ReO"[2]),
+        xlab="")
+
+boxplot(datos_pac$param2~datos_pac$ARDS,
+        col = "gray",
+        ylab=expression("P"[2] == paste( "|", "DeO"[2], "|") / "ReO"[2]),
+        xlab="")
+```
+
+**ANOVA unidireccional (ANOVA de un solo factor o ANOVA simple)**
+
+```{r}
+
+#label(datos_pac$param1)<-""
+
+table1(~ param1 | ARDS, data = datos_pac)
+table1(~ param2 | ARDS, data = datos_pac)
+
+```
+
+Dado que el número de observaciones por grupo no es constante, se trata de un modelo no equilibrado. Es importante tenerlo en cuenta cuando se comprueben las condiciones de normalidad y homocedasticidad.
+
+```{r}
+midatos<-subset(datos_pac, select = c(ARDS, param1))
+ggplot(data = na.omit(midatos), aes(x = ARDS, y = param1, color = ARDS)) +
+    geom_boxplot() +
+    ylab(expression("P"[1] == paste( "|", "DeO"[2], "|") + "ReO"[2]))+
+    xlab("")+
+    theme_bw()
+
+ggplot(data = na.omit(midatos), aes(x = ARDS, y = param1, fill = ARDS)) +
+    geom_boxplot() +
+    ylab(expression("P"[1] == paste( "|", "DeO"[2], "|") + "ReO"[2]))+
+    xlab("")+
+    theme_bw()
+```
+
+*verificar condiciones para un ANOVA*
+
+```{r}
+par(mfrow = c(1,3))
+qqnorm(datos_pac[datos_pac$ARDS == "Mild","param1"], main = "Mild", pch=19,
+       ylab=expression("P"[1] == paste( "|", "DeO"[2], "|") + "ReO"[2]))
+qqline(datos_pac[datos_pac$ARDS== "Mild", "param1"], col="red")
+qqnorm(datos_pac[datos_pac$ARDS == "Moderate","param1"], main = "Moderate", pch=19,
+       ylab=expression("P"[1] == paste( "|", "DeO"[2], "|") + "ReO"[2]))
+qqline(datos_pac[datos_pac$ARDS == "Moderate","param1"], col="red")
+qqnorm(datos_pac[datos_pac$ARDS == "Severe","param1"], main = "Severe", pch=19,
+       ylab=expression("P"[1] == paste( "|", "DeO"[2], "|") + "ReO"[2]))
+qqline(datos_pac[datos_pac$ARDS == "Severe","param1"], col="red")
+
+
+
+par(mfrow = c(1,3))
+qqnorm(datos_pac[datos_pac$ARDS == "Mild","param2"], main = "Mild", pch=19,
+       ylab=expression("P"[2] == paste( "|", "DeO"[2], "|") / "ReO"[2]))
+qqline(datos_pac[datos_pac$ARDS== "Mild", "param2"], col="red")
+qqnorm(datos_pac[datos_pac$ARDS == "Moderate","param2"], main = "Moderate", pch=19,
+       ylab=expression("P"[2] == paste( "|", "DeO"[2], "|") / "ReO"[2]))
+qqline(datos_pac[datos_pac$ARDS == "Moderate","param2"], col="red")
+qqnorm(datos_pac[datos_pac$ARDS == "Severe","param2"], main = "Severe", pch=19,
+       ylab=expression("P"[2] == paste( "|", "DeO"[2], "|") / "ReO"[2]))
+qqline(datos_pac[datos_pac$ARDS == "Severe","param2"], col="red")
+```
+
+Dado que los grupos tienen mas de 50 eventos se emplea el test de Kolmogorov-Smirnov con la corrección de Lilliefors. 
+
+```{r}
+require(nortest)
+test_param1<-by(data = datos_pac,INDICES = datos_pac$ARDS,FUN = function(x){ lillie.test(x$param1)})
+
+#dtest<-rbind(test_param1$Mild$statistic, test_param1$Moderate$statistic, #test_param1$Severe$statistic)
+ptest<-cbind(test_param1$Mild$p.value, test_param1$Moderate$p.value, test_param1$Severe$p.value)
+
+#test1<-rbind(dtest, ptest)
+
+test_param2<-by(data = datos_pac,INDICES = datos_pac$ARDS,FUN = function(x){ lillie.test(x$param2)})
+
+#dtest2<-rbind(test_param2$Mild$statistic, test_param2$Moderate$statistic, #test_param2$Severe$statistic)
+ptest2<-cbind(test_param2$Mild$p.value, test_param2$Moderate$p.value, test_param2$Severe$p.value)
+
+test2<-rbind(ptest, ptest2)
+
+#test_norm<-cbind(test1, test2)
+colnames(test2)<-c("Mild", "Moderate", "Severe")
+rownames(test2)<-c("P1", "P2")
+
+test2
+
+```
+
+Los test de hipótesis muestran evidencias de falta de normalidad en los dos grupos.
+
+
+Varianza constante entre grupos (homocedasticidad):
+
+```{r, message=FALSE, warning=FALSE, results='asis'}
+vartest_param1<-fligner.test(param1 ~ ARDS, datos_pac)
+vartest_param2<-fligner.test(param2 ~ ARDS, datos_pac)
+
+vartest<-cbind(vartest_param1$p.value, vartest_param2$p.value)
+colnames(vartest)<-c("P1", "P2")
+
+xtable(vartest)
+```
+
+El test no encuentra diferencias significativas entre las varianzas de los dos grupos. No hay evidencias significativas de falta de homocedasticidad en ninguno de los dos test.
+
+**Análisis de varianza ANOVA**
+
+```{r}
+anova <- aov(datos_pac$param1 ~ datos_pac$ARDS)
+summary(anova)
+
+anova2 <- aov(datos_pac$param2 ~ datos_pac$ARDS)
+summary(anova2)
+```
+
+```{r}
+par(mfrow=c(2,2))
+plot(anova)
+```
+
+Dado que el p-value es inferior a 0.05 no hay evidencias suficientes para considerar que las dos medias son distintas. La representación gráfica de los residuos no muestra falta de homocedasticidad (gráfico 1) y en el qqplot los residuos se distribuyen muy cercanos a la linea de la normal.
+
+```{r}
+pairwise.t.test(x = datos_pac$param1, g = datos_pac$ARDS, p.adjust.method = "holm",
+                pool.sd = TRUE, paired = FALSE, alternative = "two.sided")
+```
+
+```{r}
+TukeyHSD(anova)
+
+plot(TukeyHSD(anova))
+
+TukeyHSD(anova2)
+
+plot(TukeyHSD(anova2))
+```
+
+# MODELOS de regressión
+
+- Modelos con pendientes (DeO2 y ReO2)
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+datos_pac$SF<-datos_pac$nards
+modelo1<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + T0slope1 + T0slope2+
+                      T0minTSI + T0maxTSI + T0AUC + hypertension + previous_heart_failure + lung_disease + diabetes +
+                      previous_lung_disease + smoker + renal_insufficiency + ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelo2<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + T0slope1 + T0slope2+
+                      T0minTSI + T0maxTSI + T0AUC + hypertension + previous_heart_failure + lung_disease +
+                      previous_lung_disease + smoker + renal_insufficiency + ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelo3<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + T0slope1 + T0slope2+
+                      T0minTSI + T0maxTSI + T0AUC + hypertension + previous_heart_failure + lung_disease +
+                      previous_lung_disease + smoker + ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelo4<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + T0slope1 + T0slope2+
+                      T0minTSI + T0maxTSI + T0AUC + hypertension + previous_heart_failure +
+                      previous_lung_disease + smoker + ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelo5<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + T0slope1 + T0slope2+
+                      T0minTSI + T0maxTSI + T0AUC + hypertension +
+                      previous_lung_disease + smoker + ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelo6<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + T0slope1 + T0slope2+
+                    T0maxTSI + T0AUC + hypertension +
+                      previous_lung_disease + smoker + ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelo7<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + T0slope1 + T0slope2+
+                    T0maxTSI + hypertension + ischemic_heart_disease + atrial_fibrillation +
+                      previous_lung_disease + smoker, data = datos_pac))
+
+modelo8<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0slope1 + T0slope2+
+                    T0maxTSI + hypertension +
+                      previous_lung_disease + smoker + ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelo9<-summary(lm(SF ~ age_enrollment +sex + T0slope1 + T0slope2+
+                    T0maxTSI + hypertension +
+                      previous_lung_disease + smoker + ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelo10<-summary(lm(SF ~ age_enrollment +sex + T0slope1 + T0slope2+
+                    T0maxTSI + hypertension +
+                      previous_lung_disease + ischemic_heart_disease + atrial_fibrillation , data = datos_pac))
+
+modelo11<-summary(lm(SF ~ age_enrollment +sex + T0slope1 + T0slope2+
+                    T0maxTSI + hypertension +
+                      smoker + ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelo12<-summary(lm(SF ~ age_enrollment +sex + T0slope1 + T0slope2+
+                    T0maxTSI + hypertension + ischemic_heart_disease + atrial_fibrillation , data = datos_pac))
+
+
+modelo13<-summary(lm(SF ~ age_enrollment +sex + T0bslTSI+
+                      T0minTSI + T0maxTSI + T0AUC + hypertension + 
+                       ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelo14<-summary(lm(SF ~ age_enrollment +sex + T0bslTSI + T0slope1 + T0slope2 +T0minTSI + T0maxTSI + hypertension + previous_heart_failure + previous_lung_disease + smoker + renal_insufficiency +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+r2_adj<-rbind(modelo1$adj.r.squared, modelo2$adj.r.squared, modelo3$adj.r.squared, modelo4$adj.r.squared,
+              modelo5$adj.r.squared, modelo6$adj.r.squared, modelo7$adj.r.squared, modelo8$adj.r.squared,
+              modelo9$adj.r.squared, modelo10$adj.r.squared, modelo11$adj.r.squared, modelo12$adj.r.squared,
+              modelo13$adj.r.squared, modelo14$adj.r.squared)
+
+#pvalor<-rbind(0.0006973, 0.0003453, 0.0001731, 0.0000779,
+ #             0.00003602, 0.0000146, 0.00000636, 0.000002501, 0.0000008704, 0.00000135, 0.00000103, 0.00000136, 0.00002539)
+
+modelos<-paste('Modelo ',1:14,sep='')
+
+#modelos_res<-cbind(modelos, r2_adj*100)
+modelo9$coefficients
+```
+
+- Modelos con param1
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+##
+modelop1<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + param1+
+                      T0minTSI + T0maxTSI + T0AUC + hypertension + previous_heart_failure + lung_disease + diabetes +
+                      previous_lung_disease + smoker + renal_insufficiency +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelop2<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + param1+
+                      T0minTSI + T0maxTSI + T0AUC + hypertension + previous_heart_failure + lung_disease +
+                      previous_lung_disease + smoker + renal_insufficiency +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelop3<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + param1+
+                      T0minTSI + T0maxTSI + T0AUC + hypertension + previous_heart_failure + lung_disease +
+                      previous_lung_disease + smoker +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelop4<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + param1 +
+                      T0minTSI + T0maxTSI + T0AUC + hypertension + previous_heart_failure +
+                      previous_lung_disease + smoker +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelop5<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + param1+
+                      T0minTSI + T0maxTSI + T0AUC + hypertension +
+                      previous_lung_disease + smoker +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelop6<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + param1+
+                    T0maxTSI + T0AUC + hypertension +
+                      previous_lung_disease + smoker +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelop7<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + param1+
+                    T0maxTSI + hypertension +
+                      previous_lung_disease + smoker +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelop8<-summary(lm(SF ~ age_enrollment +sex+ bmi + param1+
+                    T0maxTSI + hypertension +
+                      previous_lung_disease + smoker +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelop9<-summary(lm(SF ~ age_enrollment +sex + param1+
+                    T0maxTSI + hypertension +
+                      previous_lung_disease + smoker +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelop10<-summary(lm(SF ~ age_enrollment +sex + param1+
+                    T0maxTSI + hypertension +
+                      previous_lung_disease +ischemic_heart_disease + atrial_fibrillation , data = datos_pac))
+
+modelop11<-summary(lm(SF ~ age_enrollment +sex + param1+
+                    T0maxTSI + hypertension +
+                      smoker +ischemic_heart_disease + atrial_fibrillation , data = datos_pac))
+
+modelop12<-summary(lm(SF ~ age_enrollment +sex + param1+
+                    T0maxTSI + hypertension +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+
+modelop13<-summary(lm(SF ~ age_enrollment +sex + T0bslTSI+
+                      T0minTSI + T0maxTSI + T0AUC + hypertension +ischemic_heart_disease + 
+                        atrial_fibrillation, data = datos_pac))
+
+modelop14<-summary(lm(SF ~ age_enrollment +sex + T0bslTSI + param1 +T0minTSI + T0maxTSI + hypertension + previous_heart_failure + previous_lung_disease + smoker + renal_insufficiency +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+#pvalorp<-rbind(0.0004005, 0.0001915, 0.0000915, 0.00004312, 0.00001896, 0.000001789, 0.000007898, 0.00000299, 
+ #             0.000001999, 0.000002388, 0.000003205, 0.000003132, 0.00002539)
+
+r2_adjp<-rbind(modelop1$adj.r.squared, modelop2$adj.r.squared, modelop3$adj.r.squared, modelop4$adj.r.squared,
+              modelop5$adj.r.squared, modelop6$adj.r.squared, modelop7$adj.r.squared, modelop8$adj.r.squared,
+              modelop9$adj.r.squared, modelop10$adj.r.squared, modelop11$adj.r.squared, modelop12$adj.r.squared,
+              modelop13$adj.r.squared, modelop14$adj.r.squared)
+
+modelosp<-paste('Modelo ',1:14,sep='')
+
+#param1_modelos_res<-cbind(modelosp, r2_adjp*100)
+```
+
+- Modelos con param2
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+##
+modelop21<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + param2+
+                      T0minTSI + T0maxTSI + T0AUC + hypertension + previous_heart_failure + lung_disease + diabetes +
+                      previous_lung_disease + smoker + renal_insufficiency +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelop22<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + param2+
+                      T0minTSI + T0maxTSI + T0AUC + hypertension + previous_heart_failure + lung_disease +
+                      previous_lung_disease + smoker + renal_insufficiency +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelop23<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + param2+
+                      T0minTSI + T0maxTSI + T0AUC + hypertension + previous_heart_failure + lung_disease +
+                      previous_lung_disease + smoker +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelop24<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + param2+
+                      T0minTSI + T0maxTSI + T0AUC + hypertension + previous_heart_failure +
+                      previous_lung_disease + smoker +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelop25<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + param2+
+                      T0minTSI + T0maxTSI + T0AUC + hypertension +
+                      previous_lung_disease + smoker +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelop26<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + param2+
+                    T0maxTSI + T0AUC + hypertension +
+                      previous_lung_disease + smoker +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelop27<-summary(lm(SF ~ age_enrollment +sex+ bmi + T0bslTSI + param2+
+                    T0maxTSI + hypertension +
+                      previous_lung_disease + smoker +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelop28<-summary(lm(SF ~ age_enrollment +sex+ bmi + param2+
+                    T0maxTSI + hypertension +
+                      previous_lung_disease + smoker +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelop29<-summary(lm(SF ~ age_enrollment +sex + param2+
+                    T0maxTSI + hypertension +
+                      previous_lung_disease + smoker +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+modelop210<-summary(lm(SF ~ age_enrollment +sex + param2+
+                    T0maxTSI + hypertension +
+                      previous_lung_disease +ischemic_heart_disease + atrial_fibrillation , data = datos_pac))
+
+modelop211<-summary(lm(SF ~ age_enrollment +sex + param2+
+                    T0maxTSI + hypertension +
+                      smoker +ischemic_heart_disease + atrial_fibrillation , data = datos_pac))
+
+modelop212<-summary(lm(SF ~ age_enrollment +sex + param2+
+                    T0maxTSI + hypertension +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+
+modelop213<-summary(lm(SF ~ age_enrollment +sex + T0bslTSI+
+                      T0minTSI + T0maxTSI + T0AUC + hypertension +ischemic_heart_disease + 
+                        atrial_fibrillation, data = datos_pac))
+
+modelop214<-summary(lm(SF ~ age_enrollment +sex + T0bslTSI + param2 +T0minTSI + T0maxTSI + hypertension + previous_heart_failure + previous_lung_disease + smoker + renal_insufficiency +ischemic_heart_disease + atrial_fibrillation, data = datos_pac))
+
+#pvalorp2<-rbind(0.0004005, 0.0001915, 0.0000915, 0.00004312, 0.00001896, 0.000001789, 0.000007898, 0.00000299, 
+ #             0.000001999, 0.000002388, 0.000003205, 0.000003132, 0.00002539)
+
+r2_adjp2<-rbind(modelop21$adj.r.squared, modelop22$adj.r.squared, modelop23$adj.r.squared, modelop24$adj.r.squared,
+              modelop25$adj.r.squared, modelop26$adj.r.squared, modelop27$adj.r.squared, modelop28$adj.r.squared,
+              modelop29$adj.r.squared, modelop210$adj.r.squared, modelop211$adj.r.squared, modelop212$adj.r.squared,
+              modelop213$adj.r.squared, modelop214$adj.r.squared)
+
+modelosp2<-paste('Modelo ',1:14,sep='')
+
+#param2_modelos_res<-cbind(modelosp2, r2_adjp2*100)
+```
+
+\newpage
+
+## Resultados
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+modelos_res<-as.data.frame(cbind(modelos, round(r2_adj*100, 2)))
+names(modelos_res)<-c("Modelos", "R-cuadrado ajustado")
+
+param1_modelos_res<-as.data.frame(cbind(modelosp, round(r2_adjp*100, 2)))
+names(param1_modelos_res)<-c("Modelos", "R-cuadrado ajustado")
+
+param2_modelos_res<-as.data.frame(cbind(modelosp2, round(r2_adjp2*100, 2)))
+names(param2_modelos_res)<-c("Modelos", "R-cuadrado ajustado")
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='asis'}
+library(xtable)
+xtable(modelos_res, caption = "Resultados de los modelos que incluyen valores de las pendientes")
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='asis'}
+library(xtable)
+xtable(param1_modelos_res, caption = "Resultados de los modelos que incluyen param1")
+```
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, results='asis'}
+library(xtable)
+xtable(param2_modelos_res, caption = "Resultados de los modelos que incluyen param2" )
+```
+
+# Árbol de regresión
+
+
+```{r, message=FALSE, warning=FALSE}
+library(rpart)
+library(rpart.plot)
+library(table1)
+
+datos_reg<-subset(datos_pac, select = c(age_enrollment, sex, bmi, T0bslTSI, T0bslTHb, T0slope1, T0slope2, T0minTSI, T0maxTSI, T0AUC, ischemic_heart_disease, atrial_fibrillation, hypertension, previous_heart_failure, lung_disease, diabetes,
+previous_lung_disease, smoker, renal_insufficiency, ARDS, SF, param1, param2))
+
+datos_pac1 <- subset(datos_reg, select = -c(SF))
+names(datos_pac1)<-c("Edad", "Sexo", "BMI", "TSI baseline", "DeO2", "ReO2", "TSI_mínimo","TSI_máximo", "AUC", 
+"EIC", "FA", "HTA", "ICP", "EP", "Diabetes", "EPP", "Fumador/a", "IR", "ARDS","P1",
+"P2")
+
+datos_pac2 <- subset(datos_reg, select = -c(ARDS))
+names(datos_pac2)<-c("Edad", "Sexo", "BMI", "TSI baseline", "DeO2", "ReO2", "TSI_mínimo","TSI_máximo", "AUC", 
+"EIC", "FA", "HTA", "ICP", "EP", "Diabetes", "EPP", "Fumador/a", "IR", "SF","P1",
+"P2")
+```
+
+## Àrbol de regresión
+
+```{r, message=FALSE, warning=FALSE}
+#arg_reg
+(arb_reg <- rpart(ARDS ~ ., data=datos_pac1, cp=0.01, method = "anova"))
+plot(arb_reg,margin=0.1); text(arb_reg)
+plot(arb_reg,compress=T,uniform=T,branch=0.4,margin=0.1); text(arb_reg)
+
+```
+
+## Árbol de clasificación
+
+```{r, message=FALSE, warning=FALSE}
+#mod_SF
+mod1_sf <- rpart(SF ~ ., data=datos_pac2, cp=0.001, method = "anova")
+plot(mod1_sf,margin=0.1); text(mod1_sf)
+plot(mod1_sf,compress=T,uniform=T,branch=0.4,margin=0.1); text(mod1_sf)
+```
+
+# Random Forest
+
+```{r, warning=FALSE, message=FALSE}
+library(randomForest)
+```
+
+*Categorico*
+
+```{r}
+datos2 <- subset(datos_pac, select = c(param2, T0minTSI, age_enrollment, hypertension,
+                        ischemic_heart_disease, previous_lung_disease, 
+                        atrial_fibrillation, ARDS))
+names(datos2)<-c("P2", "TSI_mínimo", "Edad", "HTA", "EIC", "EPP", "FA", "ARDS")
+```
+
+
+```{r}
+set.seed(12345)
+(modelo1_cat <- randomForest(ARDS ~ P2 + TSI_mínimo + Edad + HTA
+                             + EIC+EPP+FA,
+                            data=na.omit(datos2), 
+                      ntree=300, mtry=1,
+                      proximity=TRUE, importance=TRUE))
+
+mod1_prox <- modelo1_cat$proximity
+mode(mod1_prox); class(mod1_prox); dim(mod1_prox)
+
+#proximity
+library(MVA)
+rf_prox <- cmdscale(1 - mod1_prox)
+
+plot(rf_prox[,1],rf_prox[,2],
+     col=rainbow(3)[as.integer(na.omit(datos2$ARDS))],pch=19,
+     xlim = c(-0.4, 0.6))
+legend(0.5,0.3,levels(datos2$ARDS),fill=rainbow(3))
+
+#importance
+mod_imp<-modelo1_cat$importance[order(modelo1_cat$importance[,"MeanDecreaseAccuracy"], decreasing = T),]
+round(mod_imp,2)
+
+
+par(mfrow=c(1,2))
+for(i in 4:5) {
+  barplot(mod_imp[,i],main=colnames(mod_imp)[i])
+  }
+```
+
+*Contínuo*
+
+```{r}
+datos3 <- subset(datos_pac, select = c(param1, param2, T0minTSI, T0maxTSI, 
+                                       age_enrollment, hypertension,
+                                       sex,
+                        ischemic_heart_disease, previous_lung_disease, 
+                        atrial_fibrillation, SF))
+names(datos3)<-c("P1", "P2", "TSI_mín", "TSI_máx", 
+                 "Edad", "HTA", "Sexo", "EIC", "EPP", "FA", "SF")
+```
+
+```{r}
+set.seed(12345)
+(modelo1_sf <- randomForest(SF ~ P1+TSI_mín + TSI_máx+ Edad + HTA+
+                              Sexo+ EIC + EPP + FA,
+                              data=na.omit(datos3), 
+                      ntree=500, mtry=4,
+                      proximity=TRUE, importance=TRUE))
+
+
+#importance
+sf_imp<-modelo1_sf$importance[order(modelo1_sf$importance[,"%IncMSE"], decreasing = T),]
+round(sf_imp,2)
+
+par(mfrow=c(1,2))
+for(i in 1:2) {
+  barplot(sf_imp[,i],main=colnames(sf_imp)[i])
+  }
+
+
+#proximity
+sf_prox <- modelo1_sf$proximity
+mode(sf_prox); class(sf_prox); dim(sf_prox)
+
+library(MVA)
+rf_prox_sf <- cmdscale(1 - sf_prox)
+
+plot(rf_prox_sf[,1],rf_prox_sf[,2],
+     col=rainbow(3)[as.integer(na.omit(datos2$ARDS))],pch=19)
+legend(0.3, 0.4,levels(datos2$ARDS),fill=rainbow(3))
+```
+
