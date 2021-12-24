@@ -449,7 +449,6 @@ prop.table(table(datos_pac$ARDS))*100
 
 ```
 
-
 #### Graficas
 
 ```{r}
@@ -1224,6 +1223,15 @@ xtable(param2_modelos_res, caption = "Resultados de los modelos que incluyen par
 
 # Árbol de regresión
 
+```{r}
+datos_pac$log_TSI<-log(datos_pac$T0bslTSI)
+datos_pac$log_DeO2<-log(datos_pac$T0slope1)
+datos_pac$log_ReO2<-log(datos_pac$T0slope2)
+datos_pac$log_AUC<-log(datos_pac$T0AUC)
+datos_pac$log_edad<-log(datos_pac$age_enrollment)
+datos_pac$log_param1<-log(datos_pac$param1)
+datos_pac$log_param2<-log(datos_pac$param2)
+```
 
 ```{r, message=FALSE, warning=FALSE}
 library(rpart)
@@ -1233,32 +1241,53 @@ library(table1)
 datos_reg<-subset(datos_pac, select = c(age_enrollment, sex, bmi, T0bslTSI, T0bslTHb, T0slope1, T0slope2, T0minTSI, T0maxTSI, T0AUC, ischemic_heart_disease, atrial_fibrillation, hypertension, previous_heart_failure, lung_disease, diabetes,
 previous_lung_disease, smoker, renal_insufficiency, ARDS, SF, param1, param2))
 
-datos_pac1 <- subset(datos_reg, select = -c(SF))
-names(datos_pac1)<-c("Edad", "Sexo", "BMI", "TSI baseline", "DeO2", "ReO2", "TSI_mínimo","TSI_máximo", "AUC", 
-"EIC", "FA", "HTA", "ICP", "EP", "Diabetes", "EPP", "Fumador/a", "IR", "ARDS","P1",
-"P2")
 
-datos_pac2 <- subset(datos_reg, select = -c(ARDS))
-names(datos_pac2)<-c("Edad", "Sexo", "BMI", "TSI baseline", "DeO2", "ReO2", "TSI_mínimo","TSI_máximo", "AUC", 
-"EIC", "FA", "HTA", "ICP", "EP", "Diabetes", "EPP", "Fumador/a", "IR", "SF","P1",
-"P2")
+datos_pac1<-subset(datos_pac, select = c(age_enrollment, sex, bmi, T0bslTSI, T0slope1,
+                    T0slope2, T0minTSI, T0maxTSI, T0AUC, ischemic_heart_disease,
+                    atrial_fibrillation, hypertension, previous_heart_failure,
+                   lung_disease, diabetes, previous_lung_disease, smoker,
+                   renal_insufficiency, ARDS, param1, param2, log_TSI,
+                   log_DeO2, log_ReO2, log_AUC, log_edad, log_param1, log_param2))
+
+
+names(datos_pac1)<-c("Edad", "Sexo", "BMI", "TSI baseline", "DeO2", "ReO2",
+                     "TSI_mínimo","TSI_máximo", "AUC", "EIC", "FA", "HTA", "ICP", "EP",
+                     "Diabetes", "EPP", "Fumador/a", "IR", "ARDS","P1", "P2",
+                     "log_TSI","log_DeO2","log_ReO2", "log_AUC","log_edad","log_param1",
+                     "log_param2")
+
+datos_pac2<-subset(datos_pac, select = c(age_enrollment, sex, bmi, T0bslTSI, T0slope1,
+                    T0slope2, T0minTSI, T0maxTSI, T0AUC, ischemic_heart_disease,
+                    atrial_fibrillation, hypertension, previous_heart_failure,
+                   lung_disease, diabetes, previous_lung_disease, smoker,
+                   renal_insufficiency, SF, param1, param2, log_TSI,
+                   log_DeO2, log_ReO2, log_AUC, log_edad, log_param1, log_param2))
+
+
+names(datos_pac2)<-c("Edad", "Sexo", "BMI", "TSI baseline", "DeO2", "ReO2",
+                     "TSI_mínimo","TSI_máximo", "AUC", "EIC", "FA", "HTA", "ICP", "EP",
+                     "Diabetes", "EPP", "Fumador/a", "IR", "SF","P1", "P2",
+                     "log_TSI","log_DeO2","log_ReO2", "log_AUC","log_edad","log_param1",
+                     "log_param2")
 ```
 
-## Àrbol de regresión
+## Àrbol de clasificación
 
 ```{r, message=FALSE, warning=FALSE}
 #arg_reg
-(arb_reg <- rpart(ARDS ~ ., data=datos_pac1, cp=0.01, method = "anova"))
+arb_reg <- rpart(ARDS ~ ., data=datos_pac1, method = "anova")
+rpart.plot(arb_reg)
 plot(arb_reg,margin=0.1); text(arb_reg)
 plot(arb_reg,compress=T,uniform=T,branch=0.4,margin=0.1); text(arb_reg)
 
 ```
 
-## Árbol de clasificación
+## Árbol de regresión
 
 ```{r, message=FALSE, warning=FALSE}
 #mod_SF
-mod1_sf <- rpart(SF ~ ., data=datos_pac2, cp=0.001, method = "anova")
+mod1_sf <- rpart(SF ~ ., data=datos_pac2, method = "anova")
+rpart.plot(mod1_sf)
 plot(mod1_sf,margin=0.1); text(mod1_sf)
 plot(mod1_sf,compress=T,uniform=T,branch=0.4,margin=0.1); text(mod1_sf)
 ```
